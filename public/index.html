@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VWAP 策略操作面板</title>
+
+  <style>
+    /* =============== 基础样式 =============== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC";
+    }
+
+    body {
+      background: #0b1220;
+      color: #e5e7eb;
+      padding-bottom: 96px;
+    }
+
+    .container {
+      padding: 14px;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    h2 {
+      font-size: 15px;
+      margin-bottom: 10px;
+      color: #f8fafc;
+    }
+
+    h3 {
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: #cbd5f5;
+    }
+
+    .card {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    /* =============== Header =============== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #16a34a;
+      color: #052e16;
+      font-weight: 600;
+    }
+
+    /* =============== 配置区域 =============== */
+    .config-group {
+      margin-bottom: 14px;
+    }
+
+    .config-item {
+      padding: 8px 0;
+      border-bottom: 1px dashed #1e293b;
+    }
+
+    .config-item:last-child {
+      border-bottom: none;
+    }
+
+    .config-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .config-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .config-value {
+      font-size: 13px;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    .config-desc {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* =============== 持仓 =============== */
+    .position {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .position:last-child {
+      border-bottom: none;
+    }
+
+    .symbol {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .side {
+      font-size: 11px;
+      margin-left: 6px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #0ea5e9;
+      color: #020617;
+    }
+
+    .close-btn {
+      background: #7f1d1d;
+      color: #fecaca;
+      border: none;
+      border-radius: 10px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* =============== Footer =============== */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #020617;
+      border-top: 1px solid #1e293b;
+      padding: 12px 14px;
+    }
+
+    .close-all {
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 16px;
+      border: none;
+      background: #dc2626;
+      color: white;
+    }
+
+    .note {
+      font-size: 11px;
+      text-align: center;
+      margin-top: 6px;
+      color: #64748b;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <h1>VWAP 日内交易系统</h1>
+      <div class="status">RUNNING</div>
+    </div>
+
+    <!-- ================= 持仓 ================= -->
+    <div class="card">
+      <h2>当前持仓</h2>
+
+      <div class="position">
+        <div>
+          <span class="symbol">TSLA.US</span>
+          <span class="side">LONG</span>
+        </div>
+        <button class="close-btn" onclick="closePosition('TSLA.US')">平仓</button>
+      </div>
+
+      <div class="position">
+        <div>
+          <span class="symbol">NVDA.US</span>
+          <span class="side">SHORT</span>
+        </div>
+        <button class="close-btn" onclick="closePosition('NVDA.US')">平仓</button>
+      </div>
+
+    </div>
+
+    <!-- ================= 股票池 ================= -->
+    <div class="card">
+      <h2>股票池（按方向）</h2>
+      <div id="pool-container">
+        <div class="config-desc">加载中...</div>
+      </div>
+    </div>
+
+    <!-- ================= 配置展示 ================= -->
+    <div class="card">
+      <h2>策略配置（分类展示）</h2>
+
+      <!-- VWAP -->
+      <div class="config-group">
+        <h3>VWAP 相关</h3>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">VWAP 区间系数</span>
+            <span class="config-value">0.05 × ATR</span>
+          </div>
+          <div class="config-desc">用于定义 VWAP 上下边界，价格有效突破该区间才认为是真突破。</div>
+        </div>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">VWAP 斜率窗口</span>
+            <span class="config-value">10 分钟</span>
+          </div>
+          <div class="config-desc">用于计算 VWAP 的短期趋势方向，过滤横盘或反向突破。</div>
+        </div>
+      </div>
+
+      <!-- ATR -->
+      <div class="config-group">
+        <h3>ATR 波动率</h3>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">ATR 周期</span>
+            <span class="config-value">14（日线）</span>
+          </div>
+          <div class="config-desc">使用前一交易日的日线 ATR 作为当日统一的波动率基准。</div>
+        </div>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">止损 ATR 系数</span>
+            <span class="config-value">0.1</span>
+          </div>
+          <div class="config-desc">突破失败回到 VWAP 区间另一侧时触发止损。</div>
+        </div>
+      </div>
+
+      <!-- RSI -->
+      <div class="config-group">
+        <h3>RSI 动量过滤</h3>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">RSI 周期</span>
+            <span class="config-value">6</span>
+          </div>
+          <div class="config-desc">短周期 RSI，用于确认突破时是否存在顺势动量。</div>
+        </div>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">多 / 空阈值</span>
+            <span class="config-value">55 / 45</span>
+          </div>
+          <div class="config-desc">多头突破需 RSI &gt; 55，空头突破需 RSI &lt; 45。</div>
+        </div>
+      </div>
+
+      <!-- Volume -->
+      <div class="config-group">
+        <h3>成交量确认</h3>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">成交量窗口</span>
+            <span class="config-value">15 分钟</span>
+          </div>
+          <div class="config-desc">用于计算基准平均成交量，判断是否出现放量行为。</div>
+        </div>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">放量阈值</span>
+            <span class="config-value">1.2 × MA</span>
+          </div>
+          <div class="config-desc">突破后成交量需大于过去均值的 1.2 倍，避免假突破。</div>
+        </div>
+      </div>
+
+      <!-- Risk -->
+      <div class="config-group">
+        <h3>风控与仓位</h3>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">单笔仓位</span>
+            <span class="config-value">20%</span>
+          </div>
+          <div class="config-desc">单笔交易最多使用账户净值的 20%。</div>
+        </div>
+
+        <div class="config-item">
+          <div class="config-row">
+            <span class="config-name">最大日回撤</span>
+            <span class="config-value">2%</span>
+          </div>
+          <div class="config-desc">当日累计亏损超过该比例将触发强制平仓并停止交易。</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button class="close-all" onclick="closeAll()">全部平仓</button>
+    <div class="note">紧急操作：将立即以市价平掉所有持仓</div>
+  </div>
+
+  <!-- Pool API client -->
+  <script>
+    (async function loadPool() {
+      const box = document.getElementById('pool-container');
+      try {
+        const res = await fetch('/api/pool');
+        const json = await res.json();
+        if (!json.success) throw new Error('fail');
+        const { long, short, all } = json.data;
+        box.innerHTML = `
+          <div class="config-item">
+            <div class="config-row">
+              <span class="config-name">做多池 (${long.length})</span>
+            </div>
+            <div class="config-desc">${long.join('、')}</div>
+          </div>
+          <div class="config-item">
+            <div class="config-row">
+              <span class="config-name">做空池 (${short.length})</span>
+            </div>
+            <div class="config-desc">${short.join('、') || '（空）'}</div>
+          </div>
+          <div class="config-item">
+            <div class="config-row">
+              <span class="config-name">关注总数 (${all.length})</span>
+            </div>
+            <div class="config-desc">long ∪ short 的并集，系统订阅的全部行情。</div>
+          </div>
+        `;
+      } catch (e) {
+        box.innerHTML = `<div class="config-desc">加载失败：${String(e)}</div>`;
+      }
+    })();
+  </script>
+
+</body>
+
+</html>
