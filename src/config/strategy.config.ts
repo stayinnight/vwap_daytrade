@@ -28,7 +28,7 @@ const Config = {
     'SATS', 'LITE', 'WDC', 'RIVN', 'NOW', 'COHR', 'FCX', 'STX', 'VRT', 'JD', 'BX', 'GLW',
     'TEM', 'RVMD', 'UNH', 'CVX', 'VG', 'COST', 'RDDT', 'SE', 'NKE', 'PBR', 'PFE', 'CRCL',
     'ALAB', 'ARM', 'TSEM', 'AMAT', 'SOFI', 'NBIS', 'CRWV', 'SNDK', 'ASML', 'ALB', 'CRM',
-    'VST', 'IESC', 'CAR', 'ONTO', 'GFS', 'RYAAY', 'LYB', 'DOW', 'CF'
+    'VST', 'IESC', 'ONTO', 'GFS', 'RYAAY', 'LYB', 'DOW', 'CF'
   ].map(s => s + '.US'),
 
   shortSymbols: [
@@ -37,7 +37,7 @@ const Config = {
     'SMCI', 'CRDO', 'MU', 'PLTR', 'NFLX', 'LLY', 'LULU', 'CIEN', 'TME', 'NOK', 'NET',
     'SATS', 'LITE', 'WDC', 'RIVN', 'NOW', 'COHR', 'FCX', 'STX', 'VRT', 'JD', 'BX', 'GLW',
     'RVMD', 'UNH', 'CVX', 'COST', 'SE', 'NKE', 'PBR', 'PFE', 'ARM', 'TSEM', 'AMAT',
-    'ASML', 'ALB', 'CRM', 'VST', 'IESC', 'CAR', 'ONTO', 'GFS', 'RYAAY', 'LYB', 'DOW', 'CF'
+    'ASML', 'ALB', 'CRM', 'VST', 'IESC', 'ONTO', 'GFS', 'RYAAY', 'LYB', 'DOW', 'CF'
   ].map(s => s + '.US'),
 
   // ========================
