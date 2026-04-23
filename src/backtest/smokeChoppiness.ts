@@ -130,26 +130,36 @@ const PARAMS: ChoppinessParams = {
 })();
 
 // ============================================================
-// Case 7: 跨 window 评分可比性 —— 同样的"穿越频率约 40%"在 N=15 和 N=30 都得 0 分
+// Case 7: 跨 window 评分可比性 —— 同样的"穿越频率约 35-38%"在 N=15 和 N=30 都得 0 分
+//   bars 取 i % 5 < 2 ? 101 : 99（每 5 根中前 2 根 +1，后 3 根 -1）
+//   N=30: 实际 11 次切换，rate = 11/29 ≈ 0.379 > 0.25 → crossings=0
+//   N=15: 实际 5 次切换，rate = 5/14 ≈ 0.357 > 0.25 → crossings=0
+//   bars 离 vwap=1 (>0.3*atr=0.3) → 三档全 0 → bandRatio=30
+//   两个 window 总分都 = 0 + 30 = 30
 // ============================================================
 (function caseWindowComparable() {
     console.log('Running case 7: cross-window comparability');
-    // N=30, 大致 12 次切换 → rate ≈ 0.41 > 0.25 → 0 分
     const long = makeBars(
         Array.from({ length: 30 }, (_, i) => i % 5 < 2 ? 101 : 99)
     );
     const r1 = scoreChoppiness(long, 100, 1, { ...PARAMS, windowBars: 30 });
     assert(r1 !== null, 'r1 not null');
 
-    // N=15, 大致 6 次切换 → rate ≈ 0.43 > 0.25 → 0 分
     const short = makeBars(
         Array.from({ length: 15 }, (_, i) => i % 5 < 2 ? 101 : 99)
     );
     const r2 = scoreChoppiness(short, 100, 1, { ...PARAMS, windowBars: 15 });
     assert(r2 !== null, 'r2 not null');
 
+    // 跨 window：crossings 都是 0（rate 都 > 0.25）
     assert(r1!.crossings === 0, `r1 crossings expected 0, got ${r1!.crossings}`);
     assert(r2!.crossings === 0, `r2 crossings expected 0, got ${r2!.crossings}`);
+    // 跨 window：bandRatio 都是 30（bars 远离 vwap）
+    assert(r1!.bandRatio === 30, `r1 bandRatio expected 30, got ${r1!.bandRatio}`);
+    assert(r2!.bandRatio === 30, `r2 bandRatio expected 30, got ${r2!.bandRatio}`);
+    // 实际穿越次数验证（注释里说的数）
+    assert(r1!.details.crossingCount === 11, `r1 crossingCount expected 11, got ${r1!.details.crossingCount}`);
+    assert(r2!.details.crossingCount === 5, `r2 crossingCount expected 5, got ${r2!.details.crossingCount}`);
     console.log('  case 7 PASS');
 })();
 

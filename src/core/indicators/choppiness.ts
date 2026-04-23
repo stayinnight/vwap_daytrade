@@ -68,7 +68,7 @@ export function scoreChoppiness(
     if (!Number.isFinite(vwap) || vwap <= 0) return null;
 
     // 取最后 N 根（防御性切片：bars 长度 > N 时只用最近 N 根）
-    const window = bars.slice(-N);
+    const barWindow = bars.slice(-N);
 
     // ====== 指标 1：VWAP 穿越频率 ======
     // spec: side[i] === 0（close 等于 vwap，极少）按"无变化"处理，跳过该次比对。
@@ -76,7 +76,7 @@ export function scoreChoppiness(
     let crossingCount = 0;
     let prevSide = 0;
     for (let i = 0; i < N; i++) {
-        const close = window[i].close.toNumber();
+        const close = barWindow[i].close.toNumber();
         const side = close > vwap ? 1 : close < vwap ? -1 : 0;
         if (i > 0 && side !== 0 && prevSide !== 0 && side !== prevSide) {
             crossingCount++;
@@ -100,7 +100,7 @@ export function scoreChoppiness(
         const bandWidth = k * atr;
         let inBandCount = 0;
         for (let i = 0; i < N; i++) {
-            const close = window[i].close.toNumber();
+            const close = barWindow[i].close.toNumber();
             if (Math.abs(close - vwap) <= bandWidth) inBandCount++;
         }
         const ratio = inBandCount / N;
