@@ -1,9 +1,11 @@
 # B2-lite 日内震荡过滤器 — 设计方案
 
-**日期**：2026-04-22
+**日期**：2026-04-22（v2 修订：2026-04-23 砍掉指标 3 滚动 Range/ATR）
 **作者**：zeng.516（与 Claude 协作）
 **状态**：设计阶段，待实现
 **目标**：在 `canOpen` 入场判定上加一层"日内滚动震荡评分"，过滤掉反复在 VWAP 附近来回的票，提升 per-trade R / 胜率。
+
+**v2 修订说明**：原方案含 3 个指标（满分 100），但指标 3（30 分钟 Range/ATR）衡量的是"幅度大小"，与"反复在 VWAP 附近挨打"这一核心问题关联弱（宽幅震荡的 Range 大但反复穿 VWAP 一样会挨打）。砍掉后剩下 2 个指标都直接围绕 VWAP，主题更聚焦。**保留满分 70**（不重新归一到 100），阈值按比例从 35 → 25。
 
 ---
 
@@ -58,7 +60,7 @@
 
 ---
 
-## 3. 评分组成（3 个指标，满分 100）
+## 3. 评分组成（2 个指标，满分 70）
 
 每根已收盘 K 线触发一次评分。输入：**最近 30 根已收盘 1 分钟 bar + 当日累计 VWAP（单一数值，当根 K 时刻）+ 当日 ATR**。
 
@@ -125,36 +127,16 @@ inBand_03 = count(i in [0..29]) where |close[i] - vwap| <= 0.3 * atr) / 30
 
 能区分"严贴 VWAP 死磨"和"宽幅震但不死磨"，前者扣分更狠。
 
-### 3.3 指标 3：滚动 Range / ATR（权重 30）
-
-**直觉**：30 分钟内价格走出多少幅度（相对于今天的 ATR）。趋势日 Range 扩张，震荡日 Range 收窄。
-
-**算法**：
+### 3.3 总分与门槛
 
 ```
-range30 = max(bars[i].high) - min(bars[i].low)   for i in [0..29]
-ratio   = range30 / atr
+total = crossingsScore + bandRatioScore   // 0–70
+canEnter = total >= CHOP_SCORE_THRESHOLD  // 默认 25
 ```
 
-`atr` 是当日 ATRManager 给的值（已经是 7 日历史 ATR）。
+**阈值 25 的初始直觉**：2 个指标各拿次低档约能到 25 + (6+6+6) = 43。25 大约对应"1 个指标跌到底 + 另一个中等"或"两个都偏低但都不至于 0"。**真实阈值靠回测网格搜索定**（15 / 20 / 25 / 30 / 35），spec 只给起点。
 
-**分档**（值越大分越高）：
-
-| ratio | 分数 |
-|---|---|
-| ≥ 1.0 | 30 |
-| 0.6–1.0 | 20 |
-| 0.3–0.6 | 10 |
-| < 0.3 | 0 |
-
-### 3.4 总分与门槛
-
-```
-total = crossingsScore + bandRatioScore + rangeScore   // 0–100
-canEnter = total >= CHOP_SCORE_THRESHOLD               // 默认 35
-```
-
-**阈值 35 的初始直觉**：3 个指标各拿次低档约能到 25 + (6+6+6) + 10 = 53。35 大约对应"1 个指标跌到底 + 其他两个中等"。**真实阈值靠回测网格搜索定**（25 / 30 / 35 / 40 / 45），spec 只给起点。
+**v2 修订记**：原 v1 含指标 3（Range/ATR，权重 30，满分 100，阈值 35）。砍掉理由见文档抬头"v2 修订说明"。
 
 ---
 
@@ -181,12 +163,12 @@ filters: {
 
 // ========================
 // 日内震荡过滤（B2-lite，仅在 filters.enableChoppiness=true 时生效）
-// 评分组成：VWAP穿越次数(40) + 带内时长比(30，三档加权) + 滚动Range/ATR(30)
+// 评分组成：VWAP穿越次数(40) + 带内时长比(30，三档加权) = 满分 70
 // ========================
 choppiness: {
   windowBars: 30,           // 滚动窗口（根 K）
   bandAtrRatios: [0.1, 0.2, 0.3], // 三档带宽
-  scoreThreshold: 35,       // 总分 < 阈值禁开仓（0–100）
+  scoreThreshold: 25,       // 总分 < 阈值禁开仓（0–70）
 },
 ```
 
@@ -205,14 +187,12 @@ export interface ChoppinessParams {
 }
 
 export interface ChoppinessScore {
-  total: number;             // 0–100
+  total: number;             // 0–70
   crossings: number;         // 分项分（满分 40）
   bandRatio: number;         // 分项分（满分 30）
-  range: number;             // 分项分（满分 30）
   details: {
     crossingCount: number;       // 实际穿越次数
     inBandRatios: number[];      // 各档实际带内比例 0–1，与 bandAtrRatios 同序
-    rangeAtrRatio: number;       // 实际 Range / ATR
   };
 }
 
@@ -244,7 +224,7 @@ export function scoreChoppiness(
 
 - 入场触发日志增加一行：
   ```
-  震荡评分: total=X (穿越=Y/40 带内=Z/30 范围=W/30) 阈值=N 结果=通过/不通过
+  震荡评分: total=X/70 (穿越=Y/40 带内=Z/30) 阈值=N 结果=通过/不通过
   ```
 
 ### 6.3 修改：`src/strategy/vwapStrategy.ts::onBar`
@@ -285,11 +265,11 @@ const chopScore = filters.enableChoppiness
 | 配置 | enableChoppiness | scoreThreshold | windowBars |
 |---|---|---|---|
 | baseline | false | — | — |
+| chop-15 | true | 15 | 30 |
+| chop-20 | true | 20 | 30 |
 | chop-25 | true | 25 | 30 |
 | chop-30 | true | 30 | 30 |
 | chop-35 | true | 35 | 30 |
-| chop-40 | true | 40 | 30 |
-| chop-45 | true | 45 | 30 |
 
 对比指标（按优先级）：
 
@@ -351,11 +331,12 @@ const chopScore = filters.enableChoppiness
 |---|---|---|
 | 评分形态 | B2-lite 实时滚动（每根 K 重算） | 用户明确选择；B1 单点升级抓不住"上午震下午突破"等形态 |
 | 评估口径 | per-trade R / 胜率优先 | 用户明确选择 |
-| 指标数量 | 3 个（vs 完整版 4–5 个） | lite 版控制过拟合风险与调参成本 |
+| 指标数量 | **2 个（v2 砍掉指标 3）** | 指标 3 衡量"幅度大小"，与"反复在 VWAP 附近挨打"关联弱；剩下 2 个都直接围绕 VWAP，主题更聚焦 |
 | 窗口大小 | 30 根 | 用户初选；后续可按敏感度实验调整 |
 | 指标 1 用单一 VWAP（vs 逐根 VWAP） | 单一 | 30 分钟内 VWAP 变化小；和实盘 `calcVWAP(quote)` 对齐，无需维护 VWAP 历史序列 |
 | 指标 2 多档处理 | 选项 a：三档独立加权 10+10+10 | 能区分"严贴 VWAP 死磨"和"宽幅震不死磨"，前者扣分更狠 |
-| 默认阈值 | 35（先跑 25–45 网格） | 直觉对应"1 个指标跌底 + 其他中等"；最终值靠回测定 |
+| 砍指标 3 后总分处理 | 选项 a：保留满分 70（不归一到 100），阈值按比例 35→25 | 最简单、最少二次发明；70 满分自然（40 主权重 + 30 副权重） |
+| 默认阈值 | 25（先跑 15–35 网格） | 直觉对应"1 个指标跌底 + 另一个中等"；最终值靠回测定 |
 | 是否新增 SymbolState 字段 | 否 | 评分无状态 |
 | 是否影响出场 | 否 | 仅入场判定 |
 | 默认开关 | `enableChoppiness=false` | 与其他 filters 一致，保留 AB 切回 |
