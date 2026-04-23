@@ -29,6 +29,11 @@ export interface ChoppinessScore {
     };
 }
 
+// 满分常量（导出供日志格式化使用，避免在调用方硬编码）
+export const CHOP_MAX_TOTAL = 70;
+export const CHOP_MAX_CROSSINGS = 40;
+export const CHOP_MAX_BAND_RATIO = 30;
+
 // ====== 分档表 ======
 // 指标 1：穿越频率分档（频率越低分越高，跨 window 共用）
 const CROSSING_RATE_TIERS: { maxRate: number; score: number }[] = [

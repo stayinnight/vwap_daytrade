@@ -21,7 +21,13 @@ import { calcVolume } from "../core/indicators/volume";
 import { db } from "../db";
 import { timeGuard } from "../core/timeGuard";
 import { canLong, canShort } from '../config/symbolPools';
-import { scoreChoppiness, ChoppinessScore } from "../core/indicators/choppiness";
+import {
+    scoreChoppiness,
+    ChoppinessScore,
+    CHOP_MAX_TOTAL,
+    CHOP_MAX_CROSSINGS,
+    CHOP_MAX_BAND_RATIO,
+} from "../core/indicators/choppiness";
 
 class VWAPStrategy {
     config: StrategyConfig;
@@ -114,7 +120,7 @@ class VWAPStrategy {
             `量比=${this.fmtMaybe(params.volumeRatio, 2)} ${params.volRule} 结果=${params.volResult
             }\n` +
             `  动量：个股VWAP斜率=${this.fmtMaybe(params.slopeBps, 2)}bps ${params.momentumRule} 结果=${params.momentumResult}\n` +
-            `  震荡评分: ${params.chopValueStr} ${params.chopRule} 结果=${params.chopResult}\n` +
+            `  震荡过滤：${params.chopValueStr} ${params.chopRule} 结果=${params.chopResult}\n` +
             (params.poolRule ? `  股票池：${params.poolRule}\n` : '')
         );
     }
@@ -138,7 +144,7 @@ class VWAPStrategy {
         volumeRatio: number | null,
         indexSlope: number | null,
         symbolSlope: number | null,
-        chopScore: ChoppinessScore | null,
+        chopScore: ChoppinessScore | null = null,
     ) {
         // 1) 风控：达到最大回撤等条件后，直接禁止开新仓
         if (!this.dailyRisk.canTrade()) {
@@ -298,7 +304,7 @@ class VWAPStrategy {
                     : '不通过';
         const chopValueStr = chopScore === null
             ? 'null'
-            : `${chopScore.total}/70 (穿越=${chopScore.crossings}/40 带内=${chopScore.bandRatio}/30)`;
+            : `${chopScore.total}/${CHOP_MAX_TOTAL} (穿越=${chopScore.crossings}/${CHOP_MAX_CROSSINGS} 带内=${chopScore.bandRatio}/${CHOP_MAX_BAND_RATIO})`;
 
         // 只要”价格触发”就打印，allow 反映最终是否会被指标拦截。
         if (longPriceTrigger) {
