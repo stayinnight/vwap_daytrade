@@ -21,6 +21,7 @@ import { calcVolume } from "../core/indicators/volume";
 import { db } from "../db";
 import { timeGuard } from "../core/timeGuard";
 import { canLong, canShort } from '../config/symbolPools';
+import { scoreChoppiness, ChoppinessScore } from "../core/indicators/choppiness";
 
 class VWAPStrategy {
     config: StrategyConfig;
@@ -94,6 +95,9 @@ class VWAPStrategy {
         slopeBps: number | null;
         momentumRule: string;
         momentumResult: string;
+        chopValueStr: string;
+        chopRule: string;
+        chopResult: string;
         poolRule?: string;
         key: string;
     }) {
@@ -110,6 +114,7 @@ class VWAPStrategy {
             `量比=${this.fmtMaybe(params.volumeRatio, 2)} ${params.volRule} 结果=${params.volResult
             }\n` +
             `  动量：个股VWAP斜率=${this.fmtMaybe(params.slopeBps, 2)}bps ${params.momentumRule} 结果=${params.momentumResult}\n` +
+            `  震荡评分: ${params.chopValueStr} ${params.chopRule} 结果=${params.chopResult}\n` +
             (params.poolRule ? `  股票池：${params.poolRule}\n` : '')
         );
     }
@@ -133,6 +138,7 @@ class VWAPStrategy {
         volumeRatio: number | null,
         indexSlope: number | null,
         symbolSlope: number | null,
+        chopScore: ChoppinessScore | null,
     ) {
         // 1) 风控：达到最大回撤等条件后，直接禁止开新仓
         if (!this.dailyRisk.canTrade()) {
@@ -272,13 +278,36 @@ class VWAPStrategy {
                     ? '通过'
                     : '不通过';
 
+        // 10) 日内震荡评分过滤（B2-lite）
+        const isChopEnabled = filters.enableChoppiness;
+        const chopThreshold = this.config.choppiness.scoreThreshold;
+        const chopOk =
+            !isChopEnabled ||
+            chopScore === null || // warmup 期放行
+            chopScore.total >= chopThreshold;
+
+        const chopRule = !isChopEnabled
+            ? '震荡过滤=关闭'
+            : `阈值total>=${chopThreshold}`;
+        const chopResult = !isChopEnabled
+            ? '不参与'
+            : chopScore === null
+                ? '跳过(warmup)'
+                : chopOk
+                    ? '通过'
+                    : '不通过';
+        const chopValueStr = chopScore === null
+            ? 'null'
+            : `${chopScore.total}/70 (穿越=${chopScore.crossings}/40 带内=${chopScore.bandRatio}/30)`;
+
         // 只要”价格触发”就打印，allow 反映最终是否会被指标拦截。
         if (longPriceTrigger) {
             const longEntryAllow =
                 allowLong &&
                 (shouldCheckIndicators ? longRsiOk && volumeOk : true) &&
                 slopeOkLong &&
-                momentumOk;
+                momentumOk &&
+                chopOk;
             this.logEntryPriceTriggerOnce({
                 symbol,
                 dirText: '做多',
@@ -315,6 +344,9 @@ class VWAPStrategy {
                 slopeBps,
                 momentumRule,
                 momentumResult,
+                chopValueStr,
+                chopRule,
+                chopResult,
                 poolRule: allowLong ? undefined : '标的不在做多池',
                 key: `L:${barTimeStr}:${this.fmtNumber(upperBand)}:${this.fmtNumber(lastOneMinuteslow)}`,
             });
@@ -323,7 +355,8 @@ class VWAPStrategy {
                 allowShort &&
                 (shouldCheckIndicators ? shortRsiOk && volumeOk : true) &&
                 slopeOkShort &&
-                momentumOk;
+                momentumOk &&
+                chopOk;
             this.logEntryPriceTriggerOnce({
                 symbol,
                 dirText: '做空',
@@ -360,6 +393,9 @@ class VWAPStrategy {
                 slopeBps,
                 momentumRule,
                 momentumResult,
+                chopValueStr,
+                chopRule,
+                chopResult,
                 poolRule: allowShort ? undefined : '标的不在做空池',
                 key: `S:${barTimeStr}:${this.fmtNumber(lowerBand)}:${this.fmtNumber(lastOneMinutesHigh)}`,
             });
@@ -374,7 +410,8 @@ class VWAPStrategy {
                 allowLong &&
                 (shouldCheckIndicators ? longRsiOk && volumeOk : true) &&
                 slopeOkLong &&
-                momentumOk;
+                momentumOk &&
+                chopOk;
             if (allow) {
                 dir = OrderSide.Buy;
             }
@@ -383,7 +420,8 @@ class VWAPStrategy {
                 allowShort &&
                 (shouldCheckIndicators ? shortRsiOk && volumeOk : true) &&
                 slopeOkShort &&
-                momentumOk;
+                momentumOk &&
+                chopOk;
             if (allow) {
                 dir = OrderSide.Sell;
             }
@@ -452,6 +490,19 @@ class VWAPStrategy {
             ? market.getSlope(symbol)
             : null;
 
+        // 日内震荡评分（B2-lite，仅在启用时算）
+        const chopScore = filters.enableChoppiness
+            ? scoreChoppiness(
+                  closedBars.slice(-this.config.choppiness.windowBars),
+                  vwap,
+                  atr,
+                  {
+                      windowBars: this.config.choppiness.windowBars,
+                      bandAtrRatios: this.config.choppiness.bandAtrRatios,
+                  },
+              )
+            : null;
+
         const dir = this.canOpen(
             symbol,
             preBars,
@@ -461,6 +512,7 @@ class VWAPStrategy {
             volumeRatio,
             indexSlope,
             symbolSlope,
+            chopScore,
         );
 
         if (dir) {
