@@ -38,7 +38,7 @@ initTradeEnv();
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { OrderSide, SecurityQuote, Candlestick } from 'longport';
+import { OrderSide } from 'longport';
 
 import config from '../config/strategy.config';
 import { getAllSymbols } from '../config/symbolPools';
