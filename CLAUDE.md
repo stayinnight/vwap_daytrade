@@ -57,3 +57,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 固定 TP/SL 全面输给 trailing（未在一年样本重跑）
 - 新 baseline (SL=0.1 + loose filters) 一年 cumR ≈ +1934R，22196→59015 trades，多空接近 1:1
 - 详见 `references/BACKTEST.md` 第 6 节
+- **B2-lite 日内震荡过滤实验已否决**（`enableChoppiness=false`，代码完整保留但默认旁路）：一年样本 16 次网格回测后，唯一过 cumR 跌幅 < 20% 门槛的 W30_T20 配置触发分段验证过拟合（前段 +5% avgR、后段 0% avgR），且胜率 0 改善 + bad_case 在 INTC 上反向 = 信号不真实。详见 `references/B2-LITE-EXPERIMENT.md`
