@@ -56,15 +56,14 @@ for (const [logLevel, logFile] of Object.entries(logLevelFiles)) {
         fs.writeFileSync(logFilePath, '');
     }
     logger[logLevel as LogLevel] = (...args: any[]) => {
-        const stream = fs.createWriteStream(logFilePath, {
-            flags: 'a' 
-        });
-        stream.write(`${dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss')} `);
-        stream.write('\n' + args.join(' ') + '\n');
+        // 使用 appendFileSync 避免每次调用都创建新的 WriteStream fd——
+        // createWriteStream + end() 是异步关闭，在回测批量跑时会积累大量半关闭 fd
+        // 最终触发 EMFILE。appendFileSync 同步追加，fd 在函数返回前即已释放。
+        const line = `${dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss')} \n${args.join(' ')}\n`;
+        fs.appendFileSync(logFilePath, line);
 
         // 控制台输出带颜色：info=绿，warn=黄，error=红，debug=浅黄（fatal=亮红）
         const stdoutText = args.map(String).join(' ');
         loggerStdout(colorize(logLevel as LogLevel, stdoutText));
-        stream.end();
     };
 }
