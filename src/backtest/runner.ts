@@ -342,8 +342,7 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
     }
 
     // 临时覆盖 choppiness 配置（runner finally 恢复）
-    const savedChopWindow = config.choppiness.windowBars;
-    const savedChopThreshold = config.choppiness.scoreThreshold;
+    const savedChoppiness = { ...config.choppiness };
     if (opts.chopWindowBars !== undefined) {
         config.choppiness.windowBars = opts.chopWindowBars;
     }
@@ -917,8 +916,7 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
     config.exitMode = savedExitMode;
     config.stopAtrRatio = savedStopAtrRatio;
     config.filters = savedFilters;
-    config.choppiness.windowBars = savedChopWindow;
-    config.choppiness.scoreThreshold = savedChopThreshold;
+    config.choppiness = { ...config.choppiness, ...savedChoppiness };
     resetTrendExperimentFlags();
 
     const result: BacktestResult = {
@@ -1086,6 +1084,19 @@ async function main() {
                 ? Number(flags['chop-threshold'])
                 : undefined,
     };
+
+    // 一致性检查：--chop-window / --chop-threshold 必须配合 --filter-choppiness=on
+    if (
+        (opts.chopWindowBars !== undefined || opts.chopScoreThreshold !== undefined) &&
+        opts.filters?.enableChoppiness !== true
+    ) {
+        console.error(
+            '[runner] --chop-window / --chop-threshold 需要配合 --filter-choppiness=on 才会生效\n' +
+            '         请加上 --filter-choppiness=on 或移除 chop-* 覆盖参数'
+        );
+        process.exit(1);
+    }
+
     await runBacktest(opts);
 }
 
