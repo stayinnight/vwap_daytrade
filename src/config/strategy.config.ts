@@ -120,6 +120,7 @@ const Config = {
     enableIndexTrendFilter: false,
     enableTrendDetector: true,
     enableSlopeMomentum: false,
+    enableChoppiness: false, // B2-lite 日内震荡过滤；默认关闭，AB 切回旧行为
   },
 
   // ========================
@@ -131,6 +132,17 @@ const Config = {
   // |slope/vwap| * 10000 >= threshold(bps) 才允许入场，过滤震荡行情
   // ========================
   slopeMomentumThreshold: 0.3, // bps，对应斜率分布 ~P72
+
+  // ========================
+  // 日内震荡过滤（B2-lite，仅在 filters.enableChoppiness=true 时生效）
+  // 评分组成：VWAP穿越频率(40) + 带内时长比(30，三档加权) = 满分 70
+  // 评分跨 windowBars 可比（指标 1 用频率而非次数，指标 2 是百分比）
+  // ========================
+  choppiness: {
+    windowBars: 30,                    // 滚动窗口（根 K），回测扫 30/20/15
+    bandAtrRatios: [0.1, 0.2, 0.3],   // 三档带宽
+    scoreThreshold: 25,                // 总分 < 阈值禁开仓（0–70）
+  },
 
   indexTrendFilter: {
     indexSymbol: 'QQQ.US',
