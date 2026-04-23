@@ -22,8 +22,8 @@ function load(name: string): BacktestResult {
   return JSON.parse(
     fs.readFileSync(
       path.resolve(process.cwd(), `data/backtest/results/${name}.json`),
-      'utf8',
-    ),
+      'utf8'
+    )
   );
 }
 const baseline = load('chop_baseline');
@@ -55,31 +55,35 @@ for (const sym of SYMBOLS) {
   console.log(`\n=== ${sym} ===`);
   const base = aggBySymDay(baseline.trades, sym);
   const cand = aggBySymDay(candidate.trades, sym);
-  const candMap = Object.fromEntries(cand.map(d => [d.day, d]));
+  const candMap = Object.fromEntries(cand.map((d) => [d.day, d]));
 
-  const bad = base.filter(d => d.trades >= 3);
+  const bad = base.filter((d) => d.trades >= 3);
   console.log(`  疑似震荡日（baseline trades >= 3）: ${bad.length} 天`);
   console.log(
-    `  | 日期 | base trades | base cumR | cand trades | cand cumR | 减少 |`,
+    `  | 日期 | base trades | base cumR | cand trades | cand cumR | 减少 |`
   );
   console.log(`  |---|---|---|---|---|---|`);
   for (const d of bad) {
     const c = candMap[d.day] ?? { trades: 0, cumR: 0 };
     const reduce = d.trades - c.trades;
     console.log(
-      `  | ${d.day} | ${d.trades} | ${d.cumR.toFixed(2)} | ${c.trades} | ${c.cumR.toFixed(2)} | -${reduce} |`,
+      `  | ${d.day} | ${d.trades} | ${d.cumR.toFixed(2)} | ${
+        c.trades
+      } | ${c.cumR.toFixed(2)} | -${reduce} |`
     );
   }
 
   const baseSum = base.reduce(
     (s, d) => ({ trades: s.trades + d.trades, cumR: s.cumR + d.cumR }),
-    { trades: 0, cumR: 0 },
+    { trades: 0, cumR: 0 }
   );
   const candSum = cand.reduce(
     (s, d) => ({ trades: s.trades + d.trades, cumR: s.cumR + d.cumR }),
-    { trades: 0, cumR: 0 },
+    { trades: 0, cumR: 0 }
   );
   console.log(
-    `  total: base trades=${baseSum.trades} cumR=${baseSum.cumR.toFixed(2)} | cand trades=${candSum.trades} cumR=${candSum.cumR.toFixed(2)}`,
+    `  total: base trades=${baseSum.trades} cumR=${baseSum.cumR.toFixed(
+      2
+    )} | cand trades=${candSum.trades} cumR=${candSum.cumR.toFixed(2)}`
   );
 }

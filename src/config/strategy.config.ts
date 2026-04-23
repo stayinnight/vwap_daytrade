@@ -4,14 +4,18 @@ const Config = {
   // ========================
   longportConfig: {
     test: {
-      LONGPORT_APP_KEY: "e8c06d148da98f63f04c4eae10db96ac",
-      LONGPORT_APP_SECRET: "d8118038165ce555672118f09bd81382629f279d142e5d05023150199fb23213",
-      LONGPORT_ACCESS_TOKEN: "m_eyJhbGciOiJSUzI1NiIsImtpZCI6ImQ5YWRiMGIxYTdlNzYxNzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJsb25nYnJpZGdlIiwic3ViIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzgwNTgzNzYyLCJpYXQiOjE3NzI4MDc3NjMsImFrIjoiZThjMDZkMTQ4ZGE5OGY2M2YwNGM0ZWFlMTBkYjk2YWMiLCJhYWlkIjoyMTAwMzQ4NiwiYWMiOiJsYl9wYXBlcnRyYWRpbmciLCJtaWQiOjE4OTMxMDA0LCJzaWQiOiJnNDVZZitOS0Zoak40bUFDSE5Id0h3PT0iLCJibCI6MywidWwiOjAsImlrIjoibGJfcGFwZXJ0cmFkaW5nXzIxMDAzNDg2In0.cErLlWN-l8K7YK1D-WrJPW7DMWhbtB3MyoA5JFVjKDe_v3YT8uo8702fh-s9DiUpZjrTRDUWfQqpBt9srZSFBrsi0B6biKWEttdEgLQgp2DZ0talg5PmWJ-fkWZ5jj0ydC_7ei2nUCcA7asZKBen3yTTsAldJt02KLg7QLRHxxOGJCJUVX2YkgTOrusTRwWNBBaD_lxpzbnlimBidBg9FLbr7IvVzXoXA7Y3KyKUu46Oo0pAJy5Ro2A23T-N4S1wldItVD_LjHKxeTJ8C4f7b-9-Uco0emoOV7hWLJKlz45feZeIdKAHKHq_3Ou_KBRTk6JKDSdKX7mioIVmLtGvf4997TknU95hprBQMt1ceqFOTL-ebMiIZqa4teTDi-OpsHHUdbJLi6W7J1MVvFP9AHq2oz3z2v7HGm41JPiReyEHM4i6PCRjX8g07mKxpCdoUABk8bPRZ4K9JSi3Cpni3yocTkGuGcwttsRHsbWRRKdSRTljvw1Z1YdrLdiSkCsiaU8_aG04y3HDzPAVxPLtlqN3cWKoLMQ83TeqDQJpnSjuboOQdNICRu-QHHSk_JlHBbc5AjyenEtPo4cBv5qV5oZKDF6UeEw-o9bj5XePb2qz2IPP_2aDsrZWDeM1qS-MVN68OD8iMB4wG44vaHSvNenHpg654ZlfNCXjmLlBFPg"
+      LONGPORT_APP_KEY: 'e8c06d148da98f63f04c4eae10db96ac',
+      LONGPORT_APP_SECRET:
+        'd8118038165ce555672118f09bd81382629f279d142e5d05023150199fb23213',
+      LONGPORT_ACCESS_TOKEN:
+        'm_eyJhbGciOiJSUzI1NiIsImtpZCI6ImQ5YWRiMGIxYTdlNzYxNzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJsb25nYnJpZGdlIiwic3ViIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzgwNTgzNzYyLCJpYXQiOjE3NzI4MDc3NjMsImFrIjoiZThjMDZkMTQ4ZGE5OGY2M2YwNGM0ZWFlMTBkYjk2YWMiLCJhYWlkIjoyMTAwMzQ4NiwiYWMiOiJsYl9wYXBlcnRyYWRpbmciLCJtaWQiOjE4OTMxMDA0LCJzaWQiOiJnNDVZZitOS0Zoak40bUFDSE5Id0h3PT0iLCJibCI6MywidWwiOjAsImlrIjoibGJfcGFwZXJ0cmFkaW5nXzIxMDAzNDg2In0.cErLlWN-l8K7YK1D-WrJPW7DMWhbtB3MyoA5JFVjKDe_v3YT8uo8702fh-s9DiUpZjrTRDUWfQqpBt9srZSFBrsi0B6biKWEttdEgLQgp2DZ0talg5PmWJ-fkWZ5jj0ydC_7ei2nUCcA7asZKBen3yTTsAldJt02KLg7QLRHxxOGJCJUVX2YkgTOrusTRwWNBBaD_lxpzbnlimBidBg9FLbr7IvVzXoXA7Y3KyKUu46Oo0pAJy5Ro2A23T-N4S1wldItVD_LjHKxeTJ8C4f7b-9-Uco0emoOV7hWLJKlz45feZeIdKAHKHq_3Ou_KBRTk6JKDSdKX7mioIVmLtGvf4997TknU95hprBQMt1ceqFOTL-ebMiIZqa4teTDi-OpsHHUdbJLi6W7J1MVvFP9AHq2oz3z2v7HGm41JPiReyEHM4i6PCRjX8g07mKxpCdoUABk8bPRZ4K9JSi3Cpni3yocTkGuGcwttsRHsbWRRKdSRTljvw1Z1YdrLdiSkCsiaU8_aG04y3HDzPAVxPLtlqN3cWKoLMQ83TeqDQJpnSjuboOQdNICRu-QHHSk_JlHBbc5AjyenEtPo4cBv5qV5oZKDF6UeEw-o9bj5XePb2qz2IPP_2aDsrZWDeM1qS-MVN68OD8iMB4wG44vaHSvNenHpg654ZlfNCXjmLlBFPg',
     },
     prod: {
-      LONGPORT_APP_KEY: "e8c06d148da98f63f04c4eae10db96ac",
-      LONGPORT_APP_SECRET: "d8118038165ce555672118f09bd81382629f279d142e5d05023150199fb23213",
-      LONGPORT_ACCESS_TOKEN: "m_eyJhbGciOiJSUzI1NiIsImtpZCI6ImQ5YWRiMGIxYTdlNzYxNzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJsb25nYnJpZGdlIiwic3ViIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzgwNTgzNzYyLCJpYXQiOjE3NzI4MDc3NjMsImFrIjoiZThjMDZkMTQ4ZGE5OGY2M2YwNGM0ZWFlMTBkYjk2YWMiLCJhYWlkIjoyMTAwMzQ4NiwiYWMiOiJsYl9wYXBlcnRyYWRpbmciLCJtaWQiOjE4OTMxMDA0LCJzaWQiOiJnNDVZZitOS0Zoak40bUFDSE5Id0h3PT0iLCJibCI6MywidWwiOjAsImlrIjoibGJfcGFwZXJ0cmFkaW5nXzIxMDAzNDg2In0.cErLlWN-l8K7YK1D-WrJPW7DMWhbtB3MyoA5JFVjKDe_v3YT8uo8702fh-s9DiUpZjrTRDUWfQqpBt9srZSFBrsi0B6biKWEttdEgLQgp2DZ0talg5PmWJ-fkWZ5jj0ydC_7ei2nUCcA7asZKBen3yTTsAldJt02KLg7QLRHxxOGJCJUVX2YkgTOrusTRwWNBBaD_lxpzbnlimBidBg9FLbr7IvVzXoXA7Y3KyKUu46Oo0pAJy5Ro2A23T-N4S1wldItVD_LjHKxeTJ8C4f7b-9-Uco0emoOV7hWLJKlz45feZeIdKAHKHq_3Ou_KBRTk6JKDSdKX7mioIVmLtGvf4997TknU95hprBQMt1ceqFOTL-ebMiIZqa4teTDi-OpsHHUdbJLi6W7J1MVvFP9AHq2oz3z2v7HGm41JPiReyEHM4i6PCRjX8g07mKxpCdoUABk8bPRZ4K9JSi3Cpni3yocTkGuGcwttsRHsbWRRKdSRTljvw1Z1YdrLdiSkCsiaU8_aG04y3HDzPAVxPLtlqN3cWKoLMQ83TeqDQJpnSjuboOQdNICRu-QHHSk_JlHBbc5AjyenEtPo4cBv5qV5oZKDF6UeEw-o9bj5XePb2qz2IPP_2aDsrZWDeM1qS-MVN68OD8iMB4wG44vaHSvNenHpg654ZlfNCXjmLlBFPg"
+      LONGPORT_APP_KEY: 'e8c06d148da98f63f04c4eae10db96ac',
+      LONGPORT_APP_SECRET:
+        'd8118038165ce555672118f09bd81382629f279d142e5d05023150199fb23213',
+      LONGPORT_ACCESS_TOKEN:
+        'm_eyJhbGciOiJSUzI1NiIsImtpZCI6ImQ5YWRiMGIxYTdlNzYxNzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJsb25nYnJpZGdlIiwic3ViIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzgwNTgzNzYyLCJpYXQiOjE3NzI4MDc3NjMsImFrIjoiZThjMDZkMTQ4ZGE5OGY2M2YwNGM0ZWFlMTBkYjk2YWMiLCJhYWlkIjoyMTAwMzQ4NiwiYWMiOiJsYl9wYXBlcnRyYWRpbmciLCJtaWQiOjE4OTMxMDA0LCJzaWQiOiJnNDVZZitOS0Zoak40bUFDSE5Id0h3PT0iLCJibCI6MywidWwiOjAsImlrIjoibGJfcGFwZXJ0cmFkaW5nXzIxMDAzNDg2In0.cErLlWN-l8K7YK1D-WrJPW7DMWhbtB3MyoA5JFVjKDe_v3YT8uo8702fh-s9DiUpZjrTRDUWfQqpBt9srZSFBrsi0B6biKWEttdEgLQgp2DZ0talg5PmWJ-fkWZ5jj0ydC_7ei2nUCcA7asZKBen3yTTsAldJt02KLg7QLRHxxOGJCJUVX2YkgTOrusTRwWNBBaD_lxpzbnlimBidBg9FLbr7IvVzXoXA7Y3KyKUu46Oo0pAJy5Ro2A23T-N4S1wldItVD_LjHKxeTJ8C4f7b-9-Uco0emoOV7hWLJKlz45feZeIdKAHKHq_3Ou_KBRTk6JKDSdKX7mioIVmLtGvf4997TknU95hprBQMt1ceqFOTL-ebMiIZqa4teTDi-OpsHHUdbJLi6W7J1MVvFP9AHq2oz3z2v7HGm41JPiReyEHM4i6PCRjX8g07mKxpCdoUABk8bPRZ4K9JSi3Cpni3yocTkGuGcwttsRHsbWRRKdSRTljvw1Z1YdrLdiSkCsiaU8_aG04y3HDzPAVxPLtlqN3cWKoLMQ83TeqDQJpnSjuboOQdNICRu-QHHSk_JlHBbc5AjyenEtPo4cBv5qV5oZKDF6UeEw-o9bj5XePb2qz2IPP_2aDsrZWDeM1qS-MVN68OD8iMB4wG44vaHSvNenHpg654ZlfNCXjmLlBFPg',
     },
   },
   // ========================
@@ -22,25 +26,161 @@ const Config = {
   // 维护提醒：迁移期两份列表内容相同，修改时请同步。
   // ========================
   longSymbols: [
-    'COIN', 'APP', 'RKLB', 'ORCL', 'IONQ', 'FUTU', 'HOOD', 'TSM', 'MSTR', 'ASTS', 'ADBE',
-    'BE', 'HIMS', 'MP', 'TSLA', 'BABA', 'INTC', 'AMD', 'PDD', 'MRVL', 'DELL', 'GEV',
-    'SMCI', 'CRDO', 'MU', 'PLTR', 'NFLX', 'LLY', 'LULU', 'CIEN', 'TME', 'NOK', 'NET',
-    'SATS', 'LITE', 'WDC', 'RIVN', 'NOW', 'COHR', 'FCX', 'STX', 'VRT', 'JD', 'BX', 'GLW',
-    'TEM', 'RVMD', 'UNH', 'CVX', 'VG', 'COST', 'RDDT', 'SE', 'NKE', 'PBR', 'PFE', 'CRCL',
-    'ALAB', 'ARM', 'TSEM', 'AMAT', 'SOFI', 'NBIS', 'CRWV', 'SNDK', 'ASML', 'ALB', 'CRM',
-    'VST', 'ONTO', 'GFS', 'RYAAY', 'LYB', 'DOW', 'CF', 'TSCO', 'AGI', 'BEPC', 'OKLO', 'VICR',
-    'HPQ'
-  ].map(s => s + '.US'),
+    'COIN',
+    'APP',
+    'RKLB',
+    'ORCL',
+    'IONQ',
+    'FUTU',
+    'HOOD',
+    'TSM',
+    'MSTR',
+    'ASTS',
+    'ADBE',
+    'BE',
+    'HIMS',
+    'MP',
+    'TSLA',
+    'BABA',
+    'INTC',
+    'AMD',
+    'PDD',
+    'MRVL',
+    'DELL',
+    'GEV',
+    'SMCI',
+    'CRDO',
+    'MU',
+    'PLTR',
+    'NFLX',
+    'LLY',
+    'LULU',
+    'CIEN',
+    'TME',
+    'NOK',
+    'NET',
+    'SATS',
+    'LITE',
+    'WDC',
+    'RIVN',
+    'NOW',
+    'COHR',
+    'FCX',
+    'STX',
+    'VRT',
+    'JD',
+    'BX',
+    'GLW',
+    'TEM',
+    'RVMD',
+    'UNH',
+    'CVX',
+    'VG',
+    'COST',
+    'RDDT',
+    'SE',
+    'NKE',
+    'PBR',
+    'PFE',
+    'CRCL',
+    'ALAB',
+    'ARM',
+    'TSEM',
+    'AMAT',
+    'SOFI',
+    'NBIS',
+    'CRWV',
+    'SNDK',
+    'ASML',
+    'ALB',
+    'CRM',
+    'VST',
+    'ONTO',
+    'GFS',
+    'RYAAY',
+    'LYB',
+    'DOW',
+    'CF',
+    'TSCO',
+    'AGI',
+    'BEPC',
+    'OKLO',
+    'VICR',
+    'HPQ',
+  ].map((s) => s + '.US'),
 
   shortSymbols: [
-    'COIN', 'APP', 'RKLB', 'ORCL', 'IONQ', 'FUTU', 'HOOD', 'TSM', 'MSTR', 'ADBE',
-    'BE', 'HIMS', 'MP', 'TSLA', 'BABA', 'INTC', 'AMD', 'PDD', 'MRVL', 'DELL', 'GEV',
-    'SMCI', 'CRDO', 'MU', 'PLTR', 'NFLX', 'LLY', 'LULU', 'CIEN', 'TME', 'NOK', 'NET',
-    'SATS', 'LITE', 'WDC', 'RIVN', 'NOW', 'COHR', 'FCX', 'STX', 'VRT', 'JD', 'BX', 'GLW',
-    'RVMD', 'UNH', 'CVX', 'COST', 'SE', 'NKE', 'PBR', 'PFE', 'ARM', 'TSEM', 'AMAT',
-    'ASML', 'ALB', 'CRM', 'VST', 'ONTO', 'GFS', 'RYAAY', 'LYB', 'DOW', 'CF', 'TSCO', 'AGI',
-    'BEPC', 'VICR', 'HPQ'
-  ].map(s => s + '.US'),
+    'COIN',
+    'APP',
+    'RKLB',
+    'ORCL',
+    'IONQ',
+    'FUTU',
+    'HOOD',
+    'TSM',
+    'MSTR',
+    'ADBE',
+    'BE',
+    'HIMS',
+    'MP',
+    'TSLA',
+    'BABA',
+    'INTC',
+    'AMD',
+    'PDD',
+    'MRVL',
+    'DELL',
+    'GEV',
+    'SMCI',
+    'CRDO',
+    'MU',
+    'PLTR',
+    'NFLX',
+    'LLY',
+    'LULU',
+    'CIEN',
+    'TME',
+    'NOK',
+    'NET',
+    'SATS',
+    'LITE',
+    'WDC',
+    'RIVN',
+    'NOW',
+    'COHR',
+    'FCX',
+    'STX',
+    'VRT',
+    'JD',
+    'BX',
+    'GLW',
+    'RVMD',
+    'UNH',
+    'CVX',
+    'COST',
+    'SE',
+    'NKE',
+    'PBR',
+    'PFE',
+    'ARM',
+    'TSEM',
+    'AMAT',
+    'ASML',
+    'ALB',
+    'CRM',
+    'VST',
+    'ONTO',
+    'GFS',
+    'RYAAY',
+    'LYB',
+    'DOW',
+    'CF',
+    'TSCO',
+    'AGI',
+    'BEPC',
+    'VICR',
+    'HPQ',
+  ].map((s) => s + '.US'),
 
   // ========================
   // VWAP 区间参数
@@ -56,7 +196,7 @@ const Config = {
   // ========================
   exitMode: 'trailing' as 'trailing' | 'fixed',
   takeProfitAtrRatio: 0.5, // 仅 fixed 模式使用
-  stopLossAtrRatio: 0.35,  // 仅 fixed 模式使用
+  stopLossAtrRatio: 0.35, // 仅 fixed 模式使用
 
   // ========================
   // ATR 区间参数
@@ -120,7 +260,7 @@ const Config = {
     enableIndexTrendFilter: false,
     enableTrendDetector: true,
     enableSlopeMomentum: false,
-    enableChoppiness: false, // B2-lite 日内震荡过滤；默认关闭，AB 切回旧行为
+    enableChoppiness: true, // 日内震荡过滤（仅指标 2 带内时长比）
   },
 
   // ========================
@@ -134,14 +274,15 @@ const Config = {
   slopeMomentumThreshold: 0.3, // bps，对应斜率分布 ~P72
 
   // ========================
-  // 日内震荡过滤（B2-lite，仅在 filters.enableChoppiness=true 时生效）
-  // 评分组成：VWAP穿越频率(40) + 带内时长比(30，三档加权) = 满分 70
-  // 评分跨 windowBars 可比（指标 1 用频率而非次数，指标 2 是百分比）
+  // 日内震荡过滤（仅在 filters.enableChoppiness=true 时生效）
+  // 仅用指标 2（带内时长比，0.1/0.2/0.3 三档独立加权，满分 30）
+  // 指标 1（VWAP 穿越频率）经回测无信号，由 disableCrossings=true 关闭
   // ========================
   choppiness: {
-    windowBars: 30,                    // 滚动窗口（根 K），回测扫 30/20/15
-    bandAtrRatios: [0.1, 0.2, 0.3],   // 三档带宽
-    scoreThreshold: 25,                // 总分 < 阈值禁开仓（0–70）
+    windowBars: 30, // 滚动窗口（根 K）
+    bandAtrRatios: [0.1, 0.2, 0.3], // 三档带宽
+    scoreThreshold: 3, // 总分 < 阈值禁开仓（0–30）
+    disableCrossings: true, // 关闭指标 1（VWAP 穿越频率）
   },
 
   indexTrendFilter: {
@@ -158,6 +299,5 @@ const Config = {
   maxDailyDrawdown: 0.02,
   positionPctPerTrade: 0.2,
 };
-
 
 export default Config;

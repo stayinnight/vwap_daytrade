@@ -22,8 +22,8 @@ function median(nums: number[]): number {
 }
 
 function stat(name: string, trades: BacktestTrade[]) {
-  const rs = trades.map(t => t.rMultiple);
-  const wins = rs.filter(r => r > 0).length;
+  const rs = trades.map((t) => t.rMultiple);
+  const wins = rs.filter((r) => r > 0).length;
   return {
     name,
     n: trades.length,
@@ -36,17 +36,19 @@ function stat(name: string, trades: BacktestTrade[]) {
 
 const label = process.argv[2];
 if (!label) {
-  console.error('Usage: runChopSplitValidation.ts <label>  (e.g. chop_W30_T25)');
+  console.error(
+    'Usage: runChopSplitValidation.ts <label>  (e.g. chop_W30_T25)'
+  );
   process.exit(1);
 }
 
 const candidatePath = path.resolve(
   process.cwd(),
-  `data/backtest/results/${label}.json`,
+  `data/backtest/results/${label}.json`
 );
 const baselinePath = path.resolve(
   process.cwd(),
-  `data/backtest/results/chop_baseline.json`,
+  `data/backtest/results/chop_baseline.json`
 );
 if (!fs.existsSync(candidatePath)) {
   console.error(`missing ${candidatePath}, run runChopExperiment.ts first`);
@@ -54,15 +56,15 @@ if (!fs.existsSync(candidatePath)) {
 }
 
 const candidate: BacktestResult = JSON.parse(
-  fs.readFileSync(candidatePath, 'utf8'),
+  fs.readFileSync(candidatePath, 'utf8')
 );
 const baseline: BacktestResult = JSON.parse(
-  fs.readFileSync(baselinePath, 'utf8'),
+  fs.readFileSync(baselinePath, 'utf8')
 );
 
 // 找时间中点（用 candidate 的 trade 时间分布算）
 const allTs = candidate.trades
-  .map(t => t.entryTimestamp)
+  .map((t) => t.entryTimestamp)
   .sort((a, b) => a - b);
 if (allTs.length === 0) {
   console.error('candidate has no trades, abort');
@@ -72,9 +74,9 @@ const midTs = allTs[Math.floor(allTs.length / 2)];
 console.log(`分段中点: ${new Date(midTs).toISOString().slice(0, 10)}`);
 
 const splitFront = (trades: BacktestTrade[]) =>
-  trades.filter(t => t.entryTimestamp < midTs);
+  trades.filter((t) => t.entryTimestamp < midTs);
 const splitBack = (trades: BacktestTrade[]) =>
-  trades.filter(t => t.entryTimestamp >= midTs);
+  trades.filter((t) => t.entryTimestamp >= midTs);
 
 const baseFront = stat('baseline-front', splitFront(baseline.trades));
 const baseBack = stat('baseline-back', splitBack(baseline.trades));
@@ -86,7 +88,9 @@ console.log('\n| 分段 | trades | cumR | 胜率 | 平均R | 中位R |');
 console.log('|---|---|---|---|---|---|');
 for (const r of rows) {
   console.log(
-    `| ${r.name} | ${r.n} | ${r.cumR.toFixed(1)} | ${(r.winRate * 100).toFixed(1)}% | ${r.avgR.toFixed(3)} | ${r.medianR.toFixed(3)} |`,
+    `| ${r.name} | ${r.n} | ${r.cumR.toFixed(1)} | ${(r.winRate * 100).toFixed(
+      1
+    )}% | ${r.avgR.toFixed(3)} | ${r.medianR.toFixed(3)} |`
   );
 }
 
@@ -97,7 +101,7 @@ console.log(`\n前段 avgR 提升: ${gainFront.toFixed(4)}`);
 console.log(`后段 avgR 提升: ${gainBack.toFixed(4)}`);
 if (gainFront > 0 && gainBack < gainFront / 2) {
   console.log(
-    `\n⚠️  过拟合警告：后段提升 < 前段一半。建议回设计阶段降复杂度。`,
+    `\n⚠️  过拟合警告：后段提升 < 前段一半。建议回设计阶段降复杂度。`
   );
 } else if (gainBack > 0) {
   console.log(`\n✅  分段验证通过：候选配置在后段仍有正提升。`);
