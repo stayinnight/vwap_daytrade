@@ -1,11 +1,13 @@
 # B2-lite 日内震荡过滤器 — 设计方案
 
-**日期**：2026-04-22（v2 修订：2026-04-23 砍掉指标 3 滚动 Range/ATR）
+**日期**：2026-04-22（v2：2026-04-23 砍指标 3；v3：2026-04-23 指标 1 改为穿越频率 + 加 window 敏感度网格）
 **作者**：zeng.516（与 Claude 协作）
 **状态**：设计阶段，待实现
 **目标**：在 `canOpen` 入场判定上加一层"日内滚动震荡评分"，过滤掉反复在 VWAP 附近来回的票，提升 per-trade R / 胜率。
 
 **v2 修订说明**：原方案含 3 个指标（满分 100），但指标 3（30 分钟 Range/ATR）衡量的是"幅度大小"，与"反复在 VWAP 附近挨打"这一核心问题关联弱（宽幅震荡的 Range 大但反复穿 VWAP 一样会挨打）。砍掉后剩下 2 个指标都直接围绕 VWAP，主题更聚焦。**保留满分 70**（不重新归一到 100），阈值按比例从 35 → 25。
+
+**v3 修订说明**：增加 windowBars 敏感度实验（30 / 20 / 15 三档），需要解决"评分尺度跨 window 不可比"问题。指标 1 从"穿越次数 + 固定分档"改成"**穿越频率**（次数 / (window-1)）+ 频率分档"，分档天然跨 window 可比，阈值含义稳定。指标 2（带内时长比）天然是百分比，window 无关，不变。回测验证从一维（threshold）扩展为二维（threshold × window）。
 
 ---
 
@@ -62,54 +64,58 @@
 
 ## 3. 评分组成（2 个指标，满分 70）
 
-每根已收盘 K 线触发一次评分。输入：**最近 30 根已收盘 1 分钟 bar + 当日累计 VWAP（单一数值，当根 K 时刻）+ 当日 ATR**。
+每根已收盘 K 线触发一次评分。输入：**最近 N 根已收盘 1 分钟 bar（N = `windowBars` 配置项，回测扫 30/20/15）+ 当日累计 VWAP（单一数值，当根 K 时刻）+ 当日 ATR**。
 
 **分数越高越趋势，越低越震荡。**
 
-### 3.1 指标 1：VWAP 穿越次数（权重 40）
+### 3.1 指标 1：VWAP 穿越频率（权重 40）
 
-**直觉**：过去 30 分钟价格穿过 VWAP 几次。震荡票每隔几分钟穿一次，趋势票穿 0–1 次就走开。
+**直觉**：过去 N 分钟里，价格平均"多少分钟穿一次 VWAP"。震荡票频率高（每几分钟穿一次），趋势票频率低（基本不穿）。
 
-**算法**（用单一 VWAP，所有 30 根 bar 都和"当根时刻的累计 VWAP"比较）：
+**算法**（用单一 VWAP，所有 N 根 bar 都和"当根时刻的累计 VWAP"比较；N = `windowBars`）：
 
 ```
 side[i] = sign(bars[i].close - vwap)        // +1 / -1 / 0
 
 crossings = 0
-for i in 1..29:
+for i in 1..(N-1):
   if side[i] != 0 and side[i-1] != 0 and side[i] != side[i-1]:
     crossings += 1
+
+crossingRate = crossings / (N - 1)          // 0–1，跨 window 可比
 ```
 
 `side[i] === 0`（close 恰好等于 vwap，极少）按"无变化"处理，跳过该次比对。
 
-**分档**（值越小分越高）：
+**分档**（频率越低分越高，跨 window 共用同一份分档）：
 
-| crossings | 分数 |
-|---|---|
-| 0–1 | 40 |
-| 2–3 | 25 |
-| 4–5 | 10 |
-| ≥ 6 | 0 |
+| crossingRate | 分数 | 直观含义（取 N=30 举例） |
+|---|---|---|
+| ≤ 0.05 | 40 | ≤ 1.5 次穿越；趋势 |
+| 0.05–0.15 | 25 | 1.5–4.5 次；偏趋势 |
+| 0.15–0.25 | 10 | 4.5–7.5 次；偏震荡 |
+| > 0.25 | 0 | > 7.5 次；明显震荡 |
 
-**边界示例**：
-- 30 根全在 VWAP 上方 → crossings = 0 → 40 分
-- 前 15 根 +1、后 15 根 −1 → crossings = 1 → 40 分（一次大反转也判趋势）
-- +1, −1, +1, −1, ... → crossings ≈ 29 → 0 分
+**边界示例**（N = 30）：
+- 30 根全在 VWAP 上方 → crossings = 0 → rate = 0 → 40 分
+- 前 15 根 +1、后 15 根 −1 → crossings = 1 → rate ≈ 0.034 → 40 分（一次大反转也判趋势）
+- +1, −1, +1, −1, ... → crossings ≈ 29 → rate ≈ 1.0 → 0 分
+
+**为什么用频率而非次数**：分档跨 window 自动可比。N=15 时 `crossings=4` 对应 rate ≈ 0.286 → 0 分；N=30 时同样 4 次穿越 rate ≈ 0.138 → 10 分。语义合理：短窗口内 4 次穿越确实比长窗口内 4 次穿越更密集。
 
 ### 3.2 指标 2：带内时长比（权重 30，三档独立加权）
 
-**直觉**：过去 30 分钟价格"贴 VWAP"贴得多紧。
+**直觉**：过去 N 分钟价格"贴 VWAP"贴得多紧。
 
-**算法**：
+**算法**（N = `windowBars`）：
 
 ```
-inBand_01 = count(i in [0..29]) where |close[i] - vwap| <= 0.1 * atr) / 30
-inBand_02 = count(i in [0..29]) where |close[i] - vwap| <= 0.2 * atr) / 30
-inBand_03 = count(i in [0..29]) where |close[i] - vwap| <= 0.3 * atr) / 30
+inBand_01 = count(i in [0..N-1]) where |close[i] - vwap| <= 0.1 * atr) / N
+inBand_02 = count(i in [0..N-1]) where |close[i] - vwap| <= 0.2 * atr) / N
+inBand_03 = count(i in [0..N-1]) where |close[i] - vwap| <= 0.3 * atr) / N
 ```
 
-天然满足 `inBand_01 ≤ inBand_02 ≤ inBand_03`。
+天然满足 `inBand_01 ≤ inBand_02 ≤ inBand_03`。本指标是百分比，**天然跨 window 可比，分档无需缩放**。
 
 **分档**（每档独立打分，满分 10，三档加和最高 30）：
 
@@ -143,10 +149,10 @@ canEnter = total >= CHOP_SCORE_THRESHOLD  // 默认 25
 ## 4. 时序与 warmup
 
 - **触发时机**：`onBar` 每根新收盘 K 线都重算（与 `canOpen` 同节奏）
-- **窗口大小**：30 根已收盘 1 分钟 bar（`closedBars.slice(-30)`）
-- **冷启动**：当日 `closedBars.length < 30` 时**直接放行**（评分返回 `null`，`canOpen` 视同未启用）
-  - 等价于每天 09:30–10:00 评分不生效
-  - 这一段由 09:35 trend score 覆盖，是有意取舍
+- **窗口大小**：N 根已收盘 1 分钟 bar（`closedBars.slice(-N)`，N = `windowBars`，回测扫 30/20/15）
+- **冷启动**：当日 `closedBars.length < N` 时**直接放行**（评分返回 `null`，`canOpen` 视同未启用）
+  - N=30 时等价每天 09:30–10:00 评分不生效；N=20 时 09:30–09:50；N=15 时 09:30–09:45
+  - 该段由 09:35 trend score 覆盖，是有意取舍。windowBars 越小，warmup 越短，评分启动越早
 - **依赖数据**：`vwap`（已有 `calcVWAP(quote)`）、`atr`（已有 ATRManager 当日值）、`closedBars`（onBar 已有），**无新外部依赖**
 
 ---
@@ -163,10 +169,11 @@ filters: {
 
 // ========================
 // 日内震荡过滤（B2-lite，仅在 filters.enableChoppiness=true 时生效）
-// 评分组成：VWAP穿越次数(40) + 带内时长比(30，三档加权) = 满分 70
+// 评分组成：VWAP穿越频率(40) + 带内时长比(30，三档加权) = 满分 70
+// 评分跨 windowBars 可比（指标 1 用频率而非次数，指标 2 是百分比）
 // ========================
 choppiness: {
-  windowBars: 30,           // 滚动窗口（根 K）
+  windowBars: 30,           // 滚动窗口（根 K），回测扫 30/20/15
   bandAtrRatios: [0.1, 0.2, 0.3], // 三档带宽
   scoreThreshold: 25,       // 总分 < 阈值禁开仓（0–70）
 },
@@ -191,7 +198,8 @@ export interface ChoppinessScore {
   crossings: number;         // 分项分（满分 40）
   bandRatio: number;         // 分项分（满分 30）
   details: {
-    crossingCount: number;       // 实际穿越次数
+    crossingCount: number;       // 实际穿越次数（保留无信息损失）
+    crossingRate: number;        // crossingCount / (N - 1)，0–1，跨 window 可比
     inBandRatios: number[];      // 各档实际带内比例 0–1，与 bandAtrRatios 同序
   };
 }
@@ -240,7 +248,7 @@ const chopScore = filters.enableChoppiness
   : null;
 ```
 
-注意用 `closedBars`（不是 `preBars`）—— `preBars` 只取了 `rsiPeriod + 1` 根，不够 30 根。
+注意用 `closedBars`（不是 `preBars`）—— `preBars` 只取了 `rsiPeriod + 1` 根，不够 N 根。
 
 ### 6.4 修改：`src/backtest/runner.ts`
 
@@ -258,18 +266,19 @@ const chopScore = filters.enableChoppiness
 
 ## 7. 回测验证方案
 
-### 7.1 第一步：基准 + 阈值单变量扫描
+### 7.1 第一步：二维网格搜索（threshold × windowBars）
 
-在现有一年样本上（`enableTrendDetector = true` 保持开启作为同基线）跑：
+在现有一年样本上（`enableTrendDetector = true` 保持开启作为同基线），扫 **3 × 5 = 15 个组合 + 1 个 baseline**，共 **16 次回测**：
 
-| 配置 | enableChoppiness | scoreThreshold | windowBars |
-|---|---|---|---|
-| baseline | false | — | — |
-| chop-15 | true | 15 | 30 |
-| chop-20 | true | 20 | 30 |
-| chop-25 | true | 25 | 30 |
-| chop-30 | true | 30 | 30 |
-| chop-35 | true | 35 | 30 |
+| windowBars \ threshold | 15 | 20 | 25 | 30 | 35 |
+|---|---|---|---|---|---|
+| **30** | chop-30-15 | chop-30-20 | chop-30-25 | chop-30-30 | chop-30-35 |
+| **20** | chop-20-15 | chop-20-20 | chop-20-25 | chop-20-30 | chop-20-35 |
+| **15** | chop-15-15 | chop-15-20 | chop-15-25 | chop-15-30 | chop-15-35 |
+
+baseline：`enableChoppiness=false`。
+
+**为什么二维可比**：指标 1 用频率（跨 window 可比）+ 指标 2 是百分比（天然 window 无关），同一个 threshold 在不同 window 下含义稳定，可以直接横纵比较。
 
 对比指标（按优先级）：
 
@@ -279,19 +288,15 @@ const chopScore = filters.enableChoppiness
 4. **总 trade 数**（确认确实在过滤）
 5. **被拦截 trade 的"假想 R"**（如果让它入场，回测出场后会赚多少）—— 衡量过滤准确度
 
-### 7.2 第二步：window 敏感度（按需）
+**输出形式**：每个对比指标一张 3×5 热力表（markdown 报告），快速看出"哪个 window × threshold 组合最优"以及"对参数的敏感度"。
 
-固定第一步胜出的阈值，扫 `windowBars ∈ {15, 20, 30, 45, 60}`。
+### 7.2 第二步：分段验证（防过拟合）
 
-用户表态：30 分钟暂时 OK，**第一步先不做这步**。
-
-### 7.3 第三步：分段验证（防过拟合）
-
-把一年样本切前 6 / 后 6 个月。第一步在前 6 个月调参，胜出参数在后 6 个月跑一次验证。
+把一年样本切前 6 / 后 6 个月。第一步在前 6 个月调参，胜出的 (window, threshold) 组合在后 6 个月跑一次验证。
 
 **判定**：如果后 6 个月 per-trade R 涨幅 < 前 6 个月的一半，认定过拟合 → 回到设计阶段降复杂度（例如砍掉指标 2 的三档加权，回退到单档）。
 
-### 7.4 第四步：bad_case 复盘
+### 7.3 第三步：bad_case 复盘
 
 挑 CRDO / INTC / MRVL 在 bad_case 图对应的具体交易日，确认在新配置下：
 
@@ -307,8 +312,8 @@ const chopScore = filters.enableChoppiness
 2. `strategy.config.ts` 加字段（默认 `enableChoppiness=false`，对线上零影响）
 3. 接入 `vwapStrategy.canOpen` + `onBar`
 4. 接入 `runner.ts`，trade 记录 chopScore details
-5. 跑第一步网格搜索，产出对比表（保留为 markdown 报告）
-6. 根据结果决定是否进入第三步分段验证 / bad_case 复盘 / 上线
+5. 跑第一步**二维网格搜索**（3 windows × 5 thresholds + baseline = 16 次回测），产出 3×5 热力表（markdown 报告）
+6. 根据结果决定是否进入分段验证（7.2）/ bad_case 复盘（7.3）/ 上线
 
 ---
 
@@ -332,11 +337,13 @@ const chopScore = filters.enableChoppiness
 | 评分形态 | B2-lite 实时滚动（每根 K 重算） | 用户明确选择；B1 单点升级抓不住"上午震下午突破"等形态 |
 | 评估口径 | per-trade R / 胜率优先 | 用户明确选择 |
 | 指标数量 | **2 个（v2 砍掉指标 3）** | 指标 3 衡量"幅度大小"，与"反复在 VWAP 附近挨打"关联弱；剩下 2 个都直接围绕 VWAP，主题更聚焦 |
-| 窗口大小 | 30 根 | 用户初选；后续可按敏感度实验调整 |
+| 默认窗口大小 | 30 根 | 用户初选；v3 加 windowBars 敏感度实验扫 30/20/15 |
 | 指标 1 用单一 VWAP（vs 逐根 VWAP） | 单一 | 30 分钟内 VWAP 变化小；和实盘 `calcVWAP(quote)` 对齐，无需维护 VWAP 历史序列 |
+| **指标 1：穿越频率 vs 穿越次数（v3）** | **路线 C：穿越频率 = 次数 / (N-1)** | 跨 window 评分天然可比；语义直接（震荡程度 = 多久穿一次）；details 保留实际次数无信息损失。否决：A 路线分档随 window 缩放（实现复杂）、B 路线承认评分尺度不可比（结果不可读） |
 | 指标 2 多档处理 | 选项 a：三档独立加权 10+10+10 | 能区分"严贴 VWAP 死磨"和"宽幅震不死磨"，前者扣分更狠 |
 | 砍指标 3 后总分处理 | 选项 a：保留满分 70（不归一到 100），阈值按比例 35→25 | 最简单、最少二次发明；70 满分自然（40 主权重 + 30 副权重） |
-| 默认阈值 | 25（先跑 15–35 网格） | 直觉对应"1 个指标跌底 + 另一个中等"；最终值靠回测定 |
+| 默认阈值 | 25（v3 改为二维网格扫 15–35 × window 30/20/15） | 直觉对应"1 个指标跌底 + 另一个中等"；最终值靠回测定 |
+| **回测网格维度（v3）** | **二维：threshold × windowBars** | 指标 1 改频率后跨 window 可比，二维网格结果可读；3×5 + baseline = 16 次回测，回测耗时仍可接受 |
 | 是否新增 SymbolState 字段 | 否 | 评分无状态 |
 | 是否影响出场 | 否 | 仅入场判定 |
 | 默认开关 | `enableChoppiness=false` | 与其他 filters 一致，保留 AB 切回 |
