@@ -75,6 +75,22 @@ export interface BacktestTrade {
             prevRangePctAvg7Value?: number;
         };
     } | null;
+    /**
+     * 入场当日该 trade 的 B2-lite 震荡评分快照（成交那一刻）。
+     * - 数值 = 评分对象（total / 分项分 / details）
+     * - null = 评分关闭，或 warmup 期未评分
+     * - 旧 result json 不存在此字段，读脚本应用 `t.entryChopScore ?? null` 兼容
+     */
+    entryChopScore?: {
+        total: number;
+        crossings: number;
+        bandRatio: number;
+        details: {
+            crossingCount: number;
+            crossingRate: number;
+            inBandRatios: number[];
+        };
+    } | null;
 }
 
 /** 一次回测 run 的完整输出。 */

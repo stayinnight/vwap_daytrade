@@ -52,6 +52,7 @@ import { calcRSI } from '../core/indicators/rsi';
 import { calcVolume } from '../core/indicators/volume';
 import { timeGuard } from '../core/timeGuard';
 import { atr as ta_atr } from 'technicalindicators';
+import { scoreChoppiness } from '../core/indicators/choppiness';
 import {
     precomputeTrendBaselinesForSymbol,
     scoreTrendDay,
@@ -132,11 +133,16 @@ interface RunnerOptions {
         enableEntryPhaseFilter: boolean;
         enableIndexTrendFilter: boolean;
         enableTrendDetector: boolean;
+        enableChoppiness: boolean;
     }>;
     /** 覆盖趋势日门槛(默认走 TREND_SCORE_THRESHOLD) */
     trendThreshold?: number;
     /** 覆盖指标六 ATR% 的短 ATR 周期(默认 TREND_ATR_SHORT_PERIOD_DEFAULT=7) */
     trendAtrShortPeriod?: number;
+    /** 覆盖 choppiness.windowBars，runBacktest 结束时恢复 */
+    chopWindowBars?: number;
+    /** 覆盖 choppiness.scoreThreshold，runBacktest 结束时恢复 */
+    chopScoreThreshold?: number;
     /** v4c 调参实验:禁用哪些新指标(9=今日Range%, 10=昨日Range%, 11=前7天Range%均值) */
     disableTrendIndicators?: number[];
     /** v4c 调参实验:指标十一评分模式,默认 forward(维持当前生产行为) */
@@ -269,6 +275,8 @@ interface Position {
     /** 入场当日该票的评分(detector 关闭时记录的也是打分结果,null 表示没基线) */
     entryDayScore: number | null;
     entryDayScoreDetail: BacktestTrade['entryDayScoreDetail'];
+    /** 入场时的 chopScore 快照，写入 BacktestTrade.entryChopScore */
+    entryChopScore: BacktestTrade['entryChopScore'];
 }
 
 // ======================================================================
@@ -331,6 +339,16 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
     const savedFilters = { ...config.filters };
     if (opts.filters) {
         config.filters = { ...config.filters, ...opts.filters };
+    }
+
+    // 临时覆盖 choppiness 配置（runner finally 恢复）
+    const savedChopWindow = config.choppiness.windowBars;
+    const savedChopThreshold = config.choppiness.scoreThreshold;
+    if (opts.chopWindowBars !== undefined) {
+        config.choppiness.windowBars = opts.chopWindowBars;
+    }
+    if (opts.chopScoreThreshold !== undefined) {
+        config.choppiness.scoreThreshold = opts.chopScoreThreshold;
     }
 
     // v4c 调参实验 flags:按 opts 覆盖指标启用状态 / 指标十一模式
@@ -444,8 +462,8 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
     // 持仓 & trade log
     const positions: Record<string, Position> = {};
     const trades: BacktestTrade[] = [];
-    // 待在 "下一根 bar 的 open" 成交的入场意图：symbol -> side
-    const pendingEntry: Record<string, OrderSide> = {};
+    // 待在 "下一根 bar 的 open" 成交的入场意图：symbol -> { side, chopScore }
+    const pendingEntry: Record<string, { side: OrderSide; chopScore: BacktestTrade['entryChopScore'] }> = {};
 
     const tp_r = opts.takeProfitAtrRatio ?? 0.5;
     const sl_r = opts.stopLossAtrRatio ?? 0.35;
@@ -455,9 +473,11 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
     const noTradeBeforeCloseMinutes = config.noTradeBeforeCloseMinutes;
 
     // canOpen 需要的 bar 窗口长度（和实盘 defaultBarLength 对齐）
+    // 当 enableChoppiness=true 时，还要保证窗口足够容纳 choppiness.windowBars 根
     const barWindow = Math.max(
         10,
-        config.breakVolumePeriod + config.postVolumePeriod + 2
+        config.breakVolumePeriod + config.postVolumePeriod + 2,
+        config.filters.enableChoppiness ? config.choppiness.windowBars : 0
     );
 
     // ======================================================================
@@ -487,6 +507,7 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
             ambiguousExit,
             entryDayScore: pos.entryDayScore,
             entryDayScoreDetail: pos.entryDayScoreDetail,
+            entryChopScore: pos.entryChopScore,
         });
         delete positions[pos.symbol];
         // 重置策略里的 state，允许同日再次开仓
@@ -632,7 +653,7 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
 
             // ========== 2. 没有持仓 & 有待成交入场：在 bar.open 成交 ==========
             if (!positions[symbol] && pendingEntry[symbol]) {
-                const side = pendingEntry[symbol];
+                const { side, chopScore: entryChop } = pendingEntry[symbol];
                 delete pendingEntry[symbol];
                 const entryPrice = currBar.open;
                 const a = atrMap[symbol];
@@ -690,6 +711,7 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
                                     details: scoreNow.details,
                                 }
                                 : null,
+                        entryChopScore: entryChop,
                     };
                     positions[symbol] = newPos;
                     // 同步 strategy.states 让 canOpen 里 state.position 非空，避免重复进
@@ -784,6 +806,19 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
 
                     const symbolSlope = market.getSlope(symbol);
 
+                    // 日内震荡评分（B2-lite，仅在启用时算，与 onBar 完全对齐）
+                    const chopScore = config.filters.enableChoppiness
+                        ? scoreChoppiness(
+                              fakeBars.slice(-config.choppiness.windowBars),
+                              vwap,
+                              a,
+                              {
+                                  windowBars: config.choppiness.windowBars,
+                                  bandAtrRatios: config.choppiness.bandAtrRatios,
+                              },
+                          )
+                        : null;
+
                     let dir = strategy.canOpen(
                         symbol,
                         preBars as any,
@@ -792,7 +827,8 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
                         rsi,
                         volumeRatio,
                         indexSlope,
-                        symbolSlope
+                        symbolSlope,
+                        chopScore,
                     );
 
                     // 个股 VWAP 斜率二次过滤（实验用，和 canOpen 内的 enableSlopeMomentum 独立）
@@ -830,6 +866,14 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
                     }
 
                     if (dir) {
+                        const chopSnapshot: BacktestTrade['entryChopScore'] = chopScore
+                            ? {
+                                  total: chopScore.total,
+                                  crossings: chopScore.crossings,
+                                  bandRatio: chopScore.bandRatio,
+                                  details: chopScore.details,
+                              }
+                            : null;
                         if (trendDetectorEnabled) {
                             const scoreInfo = dayScoreMap[symbol];
                             // undefined = 09:45 前未打分 → 禁止
@@ -837,17 +881,17 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
                             // object    = 有分数,按门槛判断
                             const threshold = opts.trendThreshold ?? TREND_SCORE_THRESHOLD;
                             if (scoreInfo === null) {
-                                pendingEntry[symbol] = dir;
+                                pendingEntry[symbol] = { side: dir, chopScore: chopSnapshot };
                             } else if (
                                 scoreInfo &&
                                 typeof scoreInfo === 'object' &&
                                 scoreInfo.total >= threshold
                             ) {
-                                pendingEntry[symbol] = dir;
+                                pendingEntry[symbol] = { side: dir, chopScore: chopSnapshot };
                             }
                             // 其余情况(undefined 或分数 < 阈值)→ 不设置 pendingEntry,信号被拦截
                         } else {
-                            pendingEntry[symbol] = dir;
+                            pendingEntry[symbol] = { side: dir, chopScore: chopSnapshot };
                         }
                     }
                 }
@@ -873,6 +917,8 @@ export async function runBacktest(opts: RunnerOptions): Promise<BacktestResult> 
     config.exitMode = savedExitMode;
     config.stopAtrRatio = savedStopAtrRatio;
     config.filters = savedFilters;
+    config.choppiness.windowBars = savedChopWindow;
+    config.choppiness.scoreThreshold = savedChopThreshold;
     resetTrendExperimentFlags();
 
     const result: BacktestResult = {
@@ -943,6 +989,7 @@ async function main() {
                 '  [--filter-rsi=on|off] [--filter-volume=on|off]\n' +
                 '  [--filter-entry-phase=on|off] [--filter-index=on|off]\n' +
                 '  [--filter-trend=on|off] [--trend-threshold=N] [--trend-atr-period=N]\n' +
+                '  [--filter-choppiness=on|off] [--chop-window=N] [--chop-threshold=N]\n' +
                 '  [--disable-trend-ind=9[,10,11]] [--ind11-mode=forward|reverse|range|off]\n' +
                 '  [--slope-mode=trend|revert] [--slope-threshold=N(bps)]\n'
         );
@@ -967,6 +1014,8 @@ async function main() {
     if (phase !== undefined) filterOverride.enableEntryPhaseFilter = phase;
     if (idx !== undefined) filterOverride.enableIndexTrendFilter = idx;
     if (trend !== undefined) filterOverride.enableTrendDetector = trend;
+    const chop = parseFilterFlag('filter-choppiness');
+    if (chop !== undefined) filterOverride.enableChoppiness = chop;
 
     // --slope-mode + --slope-threshold → opts.slopeFilter
     const slopeMode = flags['slope-mode'] as string | undefined;
@@ -1028,6 +1077,14 @@ async function main() {
             trendAtrPeriodFlag !== undefined ? Number(trendAtrPeriodFlag) : undefined,
         disableTrendIndicators,
         ind11Mode,
+        chopWindowBars:
+            flags['chop-window'] !== undefined
+                ? Number(flags['chop-window'])
+                : undefined,
+        chopScoreThreshold:
+            flags['chop-threshold'] !== undefined
+                ? Number(flags['chop-threshold'])
+                : undefined,
     };
     await runBacktest(opts);
 }
