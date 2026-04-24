@@ -221,7 +221,10 @@ const PARAMS: ChoppinessParams = {
 (function caseDisableCrossings() {
   console.log('Running case 8: disableCrossings skips indicator 1');
   const bars = makeBars(new Array(30).fill(101));
-  const r = scoreChoppiness(bars, 100, 1, { ...PARAMS, disableCrossings: true });
+  const r = scoreChoppiness(bars, 100, 1, {
+    ...PARAMS,
+    disableCrossings: true,
+  });
   assert(r !== null, 'should not be null');
   assert(r!.total === 30, `expected total=30, got ${r!.total}`);
   assert(r!.crossings === 0, `expected crossings=0, got ${r!.crossings}`);
